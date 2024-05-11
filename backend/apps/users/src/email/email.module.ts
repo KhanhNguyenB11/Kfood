@@ -10,25 +10,25 @@ import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
     MailerModule.forRootAsync({
       useFactory: async (config: ConfigService) => ({
         transport: {
-          host: config.get("SMTP_HOST"),
+          host: config.get('SMTP_HOST'),
           secure: true,
           auth: {
-            user: config.get("SMTP_USER"),
-            pass: config.get("SMTP_PASSWORD")
-          }
+            user: config.get('SMTP_USER'),
+            pass: config.get('SMTP_PASSWORD'),
+          },
         },
-        defaults:{
-          from: "KFood",
+        defaults: {
+          from: 'KFood',
         },
-        template:{
-          dir: join(__dirname,"../../../../backend/email-templates"),
+        template: {
+          dir: join(__dirname, '../../../../backend/email-templates'),
           adapter: new EjsAdapter(),
-          options: { strict: false }
-        }
+          options: { strict: false },
+        },
       }),
-      inject: [ConfigService]
-    })
+      inject: [ConfigService],
+    }),
   ],
-  providers: [EmailService]
+  providers: [EmailService],
 })
 export class EmailModule {}

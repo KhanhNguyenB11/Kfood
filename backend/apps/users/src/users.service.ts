@@ -5,6 +5,7 @@ import { ActivationDto, LoginDto, RegisterDto } from './dto/user.dto';
 import { PrismaService } from '../../../prisma/Prisma.service';
 import { EmailService } from './email/email.service';
 import * as bcrypt from 'bcrypt';
+import { TokenSender } from './utils/sendToken';
 
 interface UserData {
   name: string;
@@ -80,10 +81,9 @@ export class UsersService {
       },
     );
     return { token, activationCode };
-
   }
   // activation service
-  async activateUser(activationDto: ActivationDto,res: Response) {
+  async activateUser(activationDto: ActivationDto, res: Response) {
     const { activationToken, activationCode } = activationDto;
 
     const newUser: { user: UserData; activationCode: string } =
@@ -121,11 +121,48 @@ export class UsersService {
   // login service
   async loginUser(loginDto: LoginDto) {
     const { email, password } = loginDto;
-    const user = {
-      email,
-      password,
-    };
-    return user;
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
+    if (!user) {
+      throw new BadRequestException('User not found!');
+    } else {
+      if (await this.ComparePassword(password, user.password)) {
+        const tokenSender = new TokenSender(
+          this.configService,
+          this.jwtService,
+        );
+        return tokenSender.sendToken(user);
+      } else {
+        return {
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          error: {
+            message: 'Invalid credentials!',
+          },
+        };
+      }
+    }
+  }
+  async ComparePassword(password: string, hash: string): Promise<boolean> {
+    return await bcrypt.compare(password, hash);
+  }
+  // get logged in users
+  async getLoggedInUser(req: any) {
+    const user = req.user;
+    const refreshToken = req.refreshtoken;
+    const accessToken = req.accesstoken;
+    console.log({ user, refreshToken, accessToken });
+    return { user, refreshToken, accessToken };
+  }
+  async logout(req: any) {
+    req.user = null;
+    req.refreshToken = null;
+    req.accessToken = null;
+    return { message: 'Logged out successfully!' };
   }
   // get all user
   async getAllUser() {
